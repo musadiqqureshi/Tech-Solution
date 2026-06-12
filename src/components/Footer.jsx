@@ -2,7 +2,8 @@ import { Cpu, Mail, Phone, ArrowUp } from 'lucide-react'
 
 const links = [
   { label: 'Services', href: '#services' },
-  { label: 'Why Us', href: '#why' },
+  { label: 'Work', href: '#projects' },
+  { label: 'Reviews', href: '#testimonials' },
   { label: 'Process', href: '#process' },
   { label: 'Team', href: '#team' },
   { label: 'Contact', href: '#contact' },
