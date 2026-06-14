@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, Check, X, Truck, Github, HardDrive, ExternalLink, Users } from 'lucide-react'
+import { Loader2, Check, X, Truck, Github, HardDrive, ExternalLink } from 'lucide-react'
 import { listOrders, listMeetings, listClients, updateOrderStatus, markDelivered, setMeetingStatus } from '../lib/data'
 import { fmtMoney } from '../lib/finance'
 import { StatCard, StatusBadge, Priority } from './ui'
+import { useCurrency, CurrencyPicker, CurrencyToggle } from './CurrencyContext'
 
 const REVENUE_STATES = ['approved', 'in_progress', 'delivered', 'completed']
 
@@ -12,6 +13,7 @@ export default function AdminDashboard({ refreshKey }) {
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('orders')
+  const { currency, setCurrency } = useCurrency()
 
   const reload = async () => {
     setLoading(true)
@@ -37,13 +39,19 @@ export default function AdminDashboard({ refreshKey }) {
 
   if (loading) return <div className="grid place-items-center py-20 text-slate-400"><Loader2 className="animate-spin" /></div>
 
+  // Ask currency preference before showing any financial data
+  if (!currency) return <CurrencyPicker onPick={setCurrency} />
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Revenue" value={fmtMoney(stats.revenue)} sub="approved + active" accent="#7c3aed" />
-        <StatCard label="Est. Profit" value={fmtMoney(stats.profit)} sub="projected margin" accent="#0d9488" />
-        <StatCard label="Pending" value={stats.pending} sub="awaiting approval" accent="#f59e0b" />
-        <StatCard label="Clients" value={stats.clients} sub="registered" accent="#2563eb" />
+      <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+          <StatCard label="Revenue" value={fmtMoney(stats.revenue, currency)} sub="approved + active" accent="#7c3aed" />
+          <StatCard label="Est. Profit" value={fmtMoney(stats.profit, currency)} sub="projected margin" accent="#0d9488" />
+          <StatCard label="Pending" value={stats.pending} sub="awaiting approval" accent="#f59e0b" />
+          <StatCard label="Clients" value={stats.clients} sub="registered" accent="#2563eb" />
+        </div>
+        <div className="ml-4 shrink-0"><CurrencyToggle /></div>
       </div>
 
       <div className="flex gap-2">
@@ -55,23 +63,23 @@ export default function AdminDashboard({ refreshKey }) {
         ))}
       </div>
 
-      {tab === 'orders' && <AdminOrders orders={orders} clientName={clientName} onChange={reload} />}
+      {tab === 'orders' && <AdminOrders orders={orders} clientName={clientName} onChange={reload} currency={currency} />}
       {tab === 'meetings' && <AdminMeetings meetings={meetings} clientName={clientName} onChange={reload} />}
-      {tab === 'clients' && <ClientsList clients={clients} orders={orders} />}
+      {tab === 'clients' && <ClientsList clients={clients} orders={orders} currency={currency} />}
     </div>
   )
 }
 
-function AdminOrders({ orders, clientName, onChange }) {
+function AdminOrders({ orders, clientName, onChange, currency }) {
   if (!orders.length) return <p className="text-slate-500 text-sm py-8 text-center">No orders yet.</p>
   return (
     <div className="space-y-3">
-      {orders.map((o) => <AdminOrderRow key={o.id} o={o} clientName={clientName} onChange={onChange} />)}
+      {orders.map((o) => <AdminOrderRow key={o.id} o={o} clientName={clientName} onChange={onChange} currency={currency} />)}
     </div>
   )
 }
 
-function AdminOrderRow({ o, clientName, onChange }) {
+function AdminOrderRow({ o, clientName, onChange, currency }) {
   const [busy, setBusy] = useState(false)
   const [delivery, setDelivery] = useState({ delivery_type: o.delivery_type || 'github', delivery_url: o.delivery_url || '' })
   const act = async (fn) => { setBusy(true); try { await fn() } finally { setBusy(false); onChange() } }
@@ -91,8 +99,8 @@ function AdminOrderRow({ o, clientName, onChange }) {
           {o.description && <p className="text-sm text-slate-500 mt-1 max-w-xl">{o.description}</p>}
         </div>
         <div className="text-right">
-          <div className="text-lg font-black gradient-text">{fmtMoney(o.budget)}</div>
-          <div className="text-[11px] text-slate-400">cost {fmtMoney(o.est_cost)} · profit {fmtMoney(o.est_profit)}</div>
+          <div className="text-lg font-black gradient-text">{fmtMoney(o.budget, currency)}</div>
+          <div className="text-[11px] text-slate-400">cost {fmtMoney(o.est_cost, currency)} · profit {fmtMoney(o.est_profit, currency)}</div>
         </div>
       </div>
 
@@ -157,7 +165,7 @@ function AdminMeetings({ meetings, clientName, onChange }) {
   )
 }
 
-function ClientsList({ clients, orders }) {
+function ClientsList({ clients, orders, currency }) {
   const rows = clients.filter((c) => c.role === 'client')
   const spendFor = (id) => orders.filter((o) => o.user_id === id).reduce((s, o) => s + Number(o.budget || 0), 0)
   if (!rows.length) return <p className="text-slate-500 text-sm py-8 text-center">No clients yet.</p>
@@ -175,7 +183,7 @@ function ClientsList({ clients, orders }) {
             </div>
           </div>
           <div className="text-right shrink-0">
-            <div className="text-sm font-bold gradient-text">{fmtMoney(spendFor(c.id))}</div>
+            <div className="text-sm font-bold gradient-text">{fmtMoney(spendFor(c.id), currency)}</div>
             <div className="text-[10px] text-slate-400 uppercase tracking-widest">lifetime</div>
           </div>
         </div>

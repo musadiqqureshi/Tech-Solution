@@ -59,19 +59,11 @@ export const process = [
 
 export const team = [
   {
-    name: 'Muhammad Hassan Ajmal Hashmi',
-    role: 'Chief Executive Officer',
-    bio: 'Sets the vision and leads delivery across every engagement — making sure each project ships with quality and purpose.',
-    initials: 'MH',
-    accent: 'purple',
-    phone: '+92 335 4517844',
-  },
-  {
     name: 'Musaddiq Ahmed Qureshi',
-    role: 'Chief Financial Officer',
-    bio: 'Senior engineer and Big Data specialist driving the technical and financial backbone of the company.',
+    role: 'Chief Executive Officer',
+    bio: 'Sets the vision and leads delivery across every engagement — a senior engineer and Big Data specialist driving both the technical excellence and strategic direction of the company.',
     initials: 'MQ',
-    accent: 'cyan',
+    accent: 'purple',
     link: 'https://musadiqqureshi.vercel.app',
   },
 ]

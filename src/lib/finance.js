@@ -11,6 +11,9 @@ const SERVICE_BASE = {
 const SPLIT = { development: 0.55, design: 0.2, hosting: 0.1, maintenance: 0.15 }
 const PROFIT_MARGIN = 0.3
 
+// 1 USD = PKR rate (update as needed)
+export const USD_TO_PKR = 278
+
 const baseFor = (service = '') => SERVICE_BASE[service.trim().toLowerCase()] ?? 4000
 
 export function estimateFinance({ service = '', budget = 0 } = {}) {
@@ -39,4 +42,12 @@ export const SERVICE_OPTIONS = [
   'Content & Research Writing', 'AI Automation & Workflows', 'AI Agents & Chatbots',
 ]
 
-export const fmtMoney = (n) => `$${Number(n || 0).toLocaleString()}`
+// Format money in USD
+export const fmtUSD = (n) => `$${Number(n || 0).toLocaleString()}`
+
+// Format money in PKR
+export const fmtPKR = (n) => `PKR ${Math.round(Number(n || 0) * USD_TO_PKR).toLocaleString()}`
+
+// Format money based on currency preference
+export const fmtMoney = (n, currency = 'USD') =>
+  currency === 'PKR' ? fmtPKR(n) : fmtUSD(n)

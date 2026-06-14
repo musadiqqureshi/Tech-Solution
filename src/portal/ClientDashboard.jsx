@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Plus, CalendarPlus, ExternalLink, Github, HardDrive, Loader2 } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import { listOrders, createOrder, listMeetings, createMeeting, gcalLink } from '../lib/data'
-import { estimateFinance, fmtMoney, SERVICE_OPTIONS } from '../lib/finance'
+import { SERVICE_OPTIONS } from '../lib/finance'
 import { StatCard, StatusBadge, Priority, Field } from './ui'
+import { useCurrency, CurrencyPicker, CurrencyToggle } from './CurrencyContext'
+import { fmtMoney } from '../lib/finance'
 
 export default function ClientDashboard({ refreshKey, onChange }) {
   const { user } = useAuth()
@@ -11,6 +13,7 @@ export default function ClientDashboard({ refreshKey, onChange }) {
   const [meetings, setMeetings] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('overview')
+  const { currency, setCurrency } = useCurrency()
 
   const reload = async () => {
     setLoading(true)
@@ -31,13 +34,19 @@ export default function ClientDashboard({ refreshKey, onChange }) {
 
   if (loading) return <div className="grid place-items-center py-20 text-slate-400"><Loader2 className="animate-spin" /></div>
 
+  // Ask currency preference before showing any financial data
+  if (!currency) return <CurrencyPicker onPick={setCurrency} />
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Spend" value={fmtMoney(totals.committed)} sub="across all orders" accent="#7c3aed" />
-        <StatCard label="Orders" value={orders.length} sub="projects requested" accent="#2563eb" />
-        <StatCard label="Delivered" value={totals.delivered} sub="completed projects" accent="#0d9488" />
-        <StatCard label="Meetings" value={totals.upcoming} sub="scheduled" accent="#f59e0b" />
+      <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+          <StatCard label="Total Spend" value={fmtMoney(totals.committed, currency)} sub="across all orders" accent="#7c3aed" />
+          <StatCard label="Orders" value={orders.length} sub="projects requested" accent="#2563eb" />
+          <StatCard label="Delivered" value={totals.delivered} sub="completed projects" accent="#0d9488" />
+          <StatCard label="Meetings" value={totals.upcoming} sub="scheduled" accent="#f59e0b" />
+        </div>
+        <div className="ml-4 shrink-0"><CurrencyToggle /></div>
       </div>
 
       <div className="flex gap-2">
@@ -49,15 +58,15 @@ export default function ClientDashboard({ refreshKey, onChange }) {
         ))}
       </div>
 
-      {tab === 'overview' && <OrdersList orders={orders} />}
-      {tab === 'new order' && <NewOrder userId={user.id} onCreated={() => { reload(); onChange?.() }} />}
+      {tab === 'overview' && <OrdersList orders={orders} currency={currency} />}
+      {tab === 'new order' && <NewOrder userId={user.id} onCreated={() => { reload(); onChange?.() }} currency={currency} />}
       {tab === 'meetings' && <Meetings userId={user.id} meetings={meetings} onCreated={() => { reload(); onChange?.() }} />}
     </div>
   )
 }
 
-function OrdersList({ orders }) {
-  if (!orders.length) return <p className="text-slate-500 text-sm py-8 text-center">No orders yet. Create one from the “New order” tab or ask the assistant.</p>
+function OrdersList({ orders, currency }) {
+  if (!orders.length) return <p className="text-slate-500 text-sm py-8 text-center">No orders yet. Create one from the "New order" tab or ask the assistant.</p>
   return (
     <div className="space-y-3">
       {orders.map((o) => (
@@ -72,20 +81,9 @@ function OrdersList({ orders }) {
               {o.description && <p className="text-sm text-slate-500 mt-1 max-w-xl">{o.description}</p>}
             </div>
             <div className="text-right">
-              <div className="text-lg font-black gradient-text">{fmtMoney(o.budget)}</div>
-              <div className="text-[11px] text-slate-400">est. cost {fmtMoney(o.est_cost)}</div>
+              <div className="text-lg font-black gradient-text">{fmtMoney(o.budget, currency)}</div>
             </div>
           </div>
-          {o.breakdown && (
-            <div className="grid grid-cols-4 gap-2 mt-3 text-center">
-              {['development', 'design', 'hosting', 'maintenance'].map((k) => (
-                <div key={k} className="bg-slate-50 rounded-lg py-2">
-                  <div className="text-[10px] uppercase text-slate-400">{k}</div>
-                  <div className="text-sm font-bold text-slate-700">{fmtMoney(o.breakdown[k])}</div>
-                </div>
-              ))}
-            </div>
-          )}
           {o.delivery_url && (
             <a href={o.delivery_url} target="_blank" rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-900 mt-3">
@@ -98,12 +96,11 @@ function OrdersList({ orders }) {
   )
 }
 
-function NewOrder({ userId, onCreated }) {
+function NewOrder({ userId, onCreated, currency }) {
   const [form, setForm] = useState({ service: SERVICE_OPTIONS[0], description: '', budget: '', deadline: '', priority: 'medium' })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const on = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
-  const finance = useMemo(() => estimateFinance({ service: form.service, budget: form.budget }), [form.service, form.budget])
 
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setErr('')
@@ -120,8 +117,9 @@ function NewOrder({ userId, onCreated }) {
             {SERVICE_OPTIONS.map((s) => <option key={s}>{s}</option>)}
           </select>
         </Field>
-        <Field label="Budget (USD)">
-          <input name="budget" type="number" min="0" value={form.budget} onChange={on} placeholder="e.g. 5000" className="contact-input" />
+        <Field label={`Budget (${currency})`}>
+          <input name="budget" type="number" min="0" value={form.budget} onChange={on}
+            placeholder={currency === 'PKR' ? 'e.g. 1,400,000' : 'e.g. 5000'} className="contact-input" />
         </Field>
       </div>
       <Field label="Description">
@@ -136,21 +134,6 @@ function NewOrder({ userId, onCreated }) {
             <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
           </select>
         </Field>
-      </div>
-
-      <div className="bg-slate-50 rounded-xl p-4">
-        <div className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-2">
-          Live estimate {finance.assumed && '(reference — add a budget for profit)'}
-        </div>
-        <div className="grid grid-cols-4 gap-2 text-center">
-          {['development', 'design', 'hosting', 'maintenance'].map((k) => (
-            <div key={k}><div className="text-[10px] uppercase text-slate-400">{k}</div><div className="text-sm font-bold text-slate-700">{fmtMoney(finance.breakdown[k])}</div></div>
-          ))}
-        </div>
-        <div className="flex justify-between text-sm mt-3 pt-3 border-t border-slate-200">
-          <span className="text-slate-500">Estimated cost <b className="text-slate-800">{fmtMoney(finance.estimated_cost)}</b></span>
-          <span className="text-slate-500">Profit <b className="text-emerald-600">{fmtMoney(finance.estimated_profit)}</b></span>
-        </div>
       </div>
 
       {err && <p className="text-sm text-rose-600">{err}</p>}
@@ -189,7 +172,7 @@ function Meetings({ userId, meetings, onCreated }) {
             <option>15m</option><option>30m</option><option>45m</option><option>1h</option>
           </select>
         </Field>
-        <p className="text-xs text-slate-400">Timezone: Asia/Karachi (PKT). We’ll check for conflicts before booking.</p>
+        <p className="text-xs text-slate-400">Timezone: Asia/Karachi (PKT). We'll check for conflicts before booking.</p>
         {err && <p className="text-sm text-rose-600">{err}</p>}
         <button disabled={busy} className="btn-primary w-full justify-center">
           {busy ? <Loader2 size={18} className="animate-spin" /> : <CalendarPlus size={18} />} Request slot

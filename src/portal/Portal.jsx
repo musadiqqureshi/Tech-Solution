@@ -6,6 +6,7 @@ import Auth from './Auth'
 import Assistant from './Assistant'
 import ClientDashboard from './ClientDashboard'
 import AdminDashboard from './AdminDashboard'
+import { CurrencyProvider } from './CurrencyContext'
 
 export default function Portal({ open, onClose }) {
   const { configured, user, profile, isAdmin, loading, signOut } = useAuth()
@@ -59,9 +60,11 @@ export default function Portal({ open, onClose }) {
                     <TabButton active={view === 'assistant'} onClick={() => setView('assistant')} icon={MessageSquare} label="AI Assistant" />
                   </div>
                   <div className="flex-1 overflow-y-auto p-5">
-                    {view === 'dashboard'
-                      ? (isAdmin ? <AdminDashboard refreshKey={refreshKey} /> : <ClientDashboard refreshKey={refreshKey} onChange={bump} />)
-                      : <div className="h-[calc(88vh-200px)] sm:h-full min-h-[400px]"><Assistant onDataChanged={bump} /></div>}
+                    <CurrencyProvider>
+                      {view === 'dashboard'
+                        ? (isAdmin ? <AdminDashboard refreshKey={refreshKey} /> : <ClientDashboard refreshKey={refreshKey} onChange={bump} />)
+                        : <div className="h-[calc(88vh-200px)] sm:h-full min-h-[400px]"><Assistant onDataChanged={bump} /></div>}
+                    </CurrencyProvider>
                   </div>
                 </>
               )}
