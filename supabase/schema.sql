@@ -102,6 +102,31 @@ create table if not exists public.meetings (
 );
 
 -- ============================================================
+-- 4b. ORDERS — payment status (added for invoicing workflow)
+-- ============================================================
+alter table public.orders
+  add column if not exists payment_status text not null default 'unpaid'
+    check (payment_status in ('unpaid','paid'));
+alter table public.orders add column if not exists paid_at timestamptz;
+alter table public.orders add column if not exists paid_marked_by text
+  check (paid_marked_by in ('client','admin'));
+
+-- ============================================================
+-- 4c. CLIENTS  (admin-managed client directory, no login required)
+-- ============================================================
+create table if not exists public.clients (
+  id         bigint      generated always as identity primary key,
+  name       text        not null,
+  email      text,
+  phone      text,
+  company    text,
+  notes      text,
+  user_id    uuid        references auth.users(id) on delete set null,
+  created_by uuid        references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+-- ============================================================
 -- 5. MESSAGES  (AI assistant history, per user)
 -- ============================================================
 create table if not exists public.messages (
@@ -146,6 +171,7 @@ alter table public.meetings       enable row level security;
 alter table public.messages       enable row level security;
 alter table public.chat_messages  enable row level security;
 alter table public.online_presence enable row level security;
+alter table public.clients        enable row level security;
 
 -- ── PROFILES ────────────────────────────────────────────────
 drop policy if exists "profiles self read"   on public.profiles;
@@ -216,6 +242,11 @@ drop policy if exists "presence upsert own" on public.online_presence;
 create policy "presence upsert own" on public.online_presence
   for all using (user_id = auth.uid());
 
+-- ── CLIENTS (admin directory) ────────────────────────────────
+drop policy if exists "clients admin all" on public.clients;
+create policy "clients admin all" on public.clients
+  for all using (public.is_admin()) with check (public.is_admin());
+
 -- ============================================================
 -- 9. REALTIME  (enable live subscriptions)
 -- ============================================================
@@ -246,9 +277,12 @@ end $$;
 --
 -- Tables summary:
 --   profiles        — one row per auth user (name, email, company, phone, role)
---   orders          — client project requests (service, budget, status, file links, delivery)
+--   orders          — client project requests (service, budget, status, file links, delivery,
+--                      payment_status: unpaid|paid, paid_at, paid_marked_by: client|admin)
 --   meetings        — meeting requests (date, time, duration, timezone, status)
 --   messages        — AI assistant chat history (role: user | assistant)
 --   chat_messages   — live client↔admin chat (room_id = client user_id)
 --   online_presence — heartbeat rows for online/offline status (ttl ~45 s)
+--   clients         — admin-managed client directory (name, email, phone, company, notes),
+--                      for adding/invoicing clients who don't have a portal account
 -- ============================================================

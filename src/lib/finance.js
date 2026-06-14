@@ -42,12 +42,37 @@ export const SERVICE_OPTIONS = [
   'Content & Research Writing', 'AI Automation & Workflows', 'AI Agents & Chatbots',
 ]
 
+// Currency symbols / prefixes for display
+const CURRENCY_SYMBOLS = {
+  USD: '$', PKR: 'PKR ', GBP: '£', EUR: '€', AUD: 'A$', CAD: 'C$',
+}
+
 // Format money in USD
 export const fmtUSD = (n) => `$${Number(n || 0).toLocaleString()}`
 
-// Format money in PKR
+// Format money in PKR (static fallback rate)
 export const fmtPKR = (n) => `PKR ${Math.round(Number(n || 0) * USD_TO_PKR).toLocaleString()}`
 
-// Format money based on currency preference
-export const fmtMoney = (n, currency = 'USD') =>
-  currency === 'PKR' ? fmtPKR(n) : fmtUSD(n)
+/**
+ * Convert a USD amount into another currency using live exchange `rates`
+ * ({ CODE: unitsPerUSD }). Falls back to the static USD_TO_PKR rate for
+ * PKR (or 1:1) if rates aren't available yet.
+ */
+export function convert(amountUSD, currency = 'USD', rates = null) {
+  const amount = Number(amountUSD || 0)
+  if (currency === 'USD') return amount
+  const rate = rates?.[currency] ?? (currency === 'PKR' ? USD_TO_PKR : 1)
+  return amount * rate
+}
+
+/**
+ * Format a USD amount in the given display currency, using live `rates`
+ * when provided.
+ */
+export function fmtMoney(n, currency = 'USD', rates = null) {
+  if (currency === 'USD' || !currency) return fmtUSD(n)
+  const converted = convert(n, currency, rates)
+  const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `
+  const rounded = Math.round(converted).toLocaleString()
+  return `${symbol}${rounded}`
+}

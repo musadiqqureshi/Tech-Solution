@@ -39,6 +39,16 @@ export async function markDelivered(id, { delivery_type, delivery_url }) {
   return data
 }
 
+// Mark an order's invoice as paid / unpaid. `markedBy` is 'client' or 'admin'.
+export async function setPaymentStatus(id, status, markedBy) {
+  const payload = status === 'paid'
+    ? { payment_status: 'paid', paid_at: new Date().toISOString(), paid_marked_by: markedBy }
+    : { payment_status: 'unpaid', paid_at: null, paid_marked_by: null }
+  const { data, error } = await supabase.from('orders').update(payload).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+
 // ---------- Meetings ----------
 export async function createMeeting({ userId, title, date, time, duration, timezone, orderId }) {
   // Conflict check for this user.
@@ -72,6 +82,28 @@ export async function listClients() {
   const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
   if (error) throw error
   return data
+}
+
+// ---------- Client directory (admin-managed, no login required) ----------
+export async function listManualClients() {
+  const { data, error } = await supabase.from('clients').select('*').order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function createManualClient({ name, email, phone, company, notes, createdBy }) {
+  const { data, error } = await supabase.from('clients').insert({
+    name, email: email || null, phone: phone || null, company: company || null,
+    notes: notes || null, created_by: createdBy || null,
+  }).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteManualClient(id) {
+  const { error } = await supabase.from('clients').delete().eq('id', id)
+  if (error) throw error
+  return true
 }
 
 // ---------- Messages ----------

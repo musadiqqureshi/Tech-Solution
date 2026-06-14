@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, CalendarPlus, ExternalLink, Github, HardDrive, Loader2, FileText, MessageCircle, Send, X } from 'lucide-react'
+import { Plus, CalendarPlus, ExternalLink, Github, HardDrive, Loader2, FileText, MessageCircle, Send, X, Check } from 'lucide-react'
 import { useAuth } from './AuthContext'
-import { listOrders, createOrder, listMeetings, createMeeting, gcalLink } from '../lib/data'
+import { listOrders, createOrder, listMeetings, createMeeting, gcalLink, setPaymentStatus } from '../lib/data'
 import { SERVICE_OPTIONS } from '../lib/finance'
 import { StatCard, StatusBadge, Priority, Field } from './ui'
 import { useCurrency, CurrencyPicker, CurrencyToggle } from './CurrencyContext'
@@ -15,7 +15,7 @@ export default function ClientDashboard({ refreshKey, onChange }) {
   const [meetings, setMeetings] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('overview')
-  const { currency, setCurrency } = useCurrency()
+  const { currency, setCurrency, rates } = useCurrency()
 
   const reload = async () => {
     setLoading(true)
@@ -43,7 +43,7 @@ export default function ClientDashboard({ refreshKey, onChange }) {
       {/* Stats + currency toggle */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-w-0">
-          <StatCard label="Total Spend"  value={fmtMoney(totals.committed, currency)} sub="across all orders"   accent="#7c3aed" />
+          <StatCard label="Total Spend"  value={fmtMoney(totals.committed, currency, rates)} sub="across all orders"   accent="#7c3aed" />
           <StatCard label="Orders"       value={orders.length}                         sub="projects requested"  accent="#2563eb" />
           <StatCard label="Delivered"    value={totals.delivered}                      sub="completed projects"  accent="#0d9488" />
           <StatCard label="Meetings"     value={totals.upcoming}                       sub="scheduled"           accent="#f59e0b" />
@@ -61,7 +61,7 @@ export default function ClientDashboard({ refreshKey, onChange }) {
         ))}
       </div>
 
-      {tab === 'overview'   && <OrdersList orders={orders} currency={currency} user={user} />}
+      {tab === 'overview'   && <OrdersList orders={orders} currency={currency} rates={rates} user={user} onChange={reload} />}
       {tab === 'new order'  && <NewOrder userId={user.id} onCreated={() => { reload(); onChange?.() }} currency={currency} />}
       {tab === 'meetings'   && <Meetings userId={user.id} meetings={meetings} onCreated={() => { reload(); onChange?.() }} />}
     </div>
@@ -70,7 +70,7 @@ export default function ClientDashboard({ refreshKey, onChange }) {
 
 // ── Order card with Invoice + Follow-up ──────────────────────────────────────
 
-function OrdersList({ orders, currency, user }) {
+function OrdersList({ orders, currency, rates, user, onChange }) {
   const [followUp, setFollowUp] = useState(null) // order being followed up
 
   if (!orders.length) return (
@@ -87,8 +87,10 @@ function OrdersList({ orders, currency, user }) {
             key={o.id}
             order={o}
             currency={currency}
+            rates={rates}
             user={user}
             onFollowUp={() => setFollowUp(o)}
+            onChange={onChange}
           />
         ))}
       </div>
@@ -105,16 +107,27 @@ function OrdersList({ orders, currency, user }) {
   )
 }
 
-function OrderCard({ order: o, currency, user, onFollowUp }) {
+function OrderCard({ order: o, currency, rates, user, onFollowUp, onChange }) {
   const { profile } = useAuth()
   const [genBusy, setGenBusy] = useState(false)
+  const [payBusy, setPayBusy] = useState(false)
 
   const handleInvoice = () => {
     setGenBusy(true)
-    try { generateInvoice(o, profile, currency) }
+    try { generateInvoice(o, profile, currency, rates) }
     catch (e) { console.error(e) }
     finally { setGenBusy(false) }
   }
+
+  const handleMarkPaid = async () => {
+    setPayBusy(true)
+    try { await setPaymentStatus(o.id, 'paid', 'client') }
+    catch (e) { console.error(e) }
+    finally { setPayBusy(false); onChange?.() }
+  }
+
+  const isPaid = o.payment_status === 'paid'
+  const canInvoice = ['approved', 'in_progress', 'delivered', 'completed'].includes(o.status)
 
   return (
     <div className="glass-card p-4 sm:p-5">
@@ -125,13 +138,16 @@ function OrderCard({ order: o, currency, user, onFollowUp }) {
             <h4 className="font-bold text-slate-900 text-sm sm:text-base">{o.service}</h4>
             <StatusBadge status={o.status} />
             <Priority value={o.priority} />
+            {isPaid
+              ? <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700">paid</span>
+              : <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap bg-amber-100 text-amber-700">unpaid</span>}
           </div>
           {o.description && (
             <p className="text-sm text-slate-500 mt-1 max-w-xl leading-relaxed">{o.description}</p>
           )}
         </div>
         <div className="text-right shrink-0">
-          <div className="text-lg font-black gradient-text">{fmtMoney(o.budget, currency)}</div>
+          <div className="text-lg font-black gradient-text">{fmtMoney(o.budget, currency, rates)}</div>
           {o.deadline && <div className="text-xs text-slate-400 mt-0.5">Due {o.deadline}</div>}
         </div>
       </div>
@@ -156,6 +172,18 @@ function OrderCard({ order: o, currency, user, onFollowUp }) {
           {genBusy ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
           Generate Invoice
         </button>
+
+        {/* Mark as paid */}
+        {canInvoice && !isPaid && (
+          <button
+            onClick={handleMarkPaid}
+            disabled={payBusy}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors disabled:opacity-50"
+          >
+            {payBusy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+            Mark as Paid
+          </button>
+        )}
 
         {/* Ask for update */}
         <button

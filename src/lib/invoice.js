@@ -5,14 +5,14 @@
  * Call generateInvoice(order, profile, currency) → downloads the PDF instantly.
  */
 
-import { fmtMoney, USD_TO_PKR } from './finance'
+import { convert } from './finance'
 
 // ── Company info ────────────────────────────────────────────────────────────
 const COMPANY = {
   name:    'Tech Solutions Pakistan',
   contact: 'Muhammad Mussaddiq Ahmed Qureshi',
   email:   'info@techsolutionspk.com',
-  phone:   '+92 300 0000000',
+  phone:   '+92 308 6994758',
   address: 'Jhang Rd, Muzaffargarh, Pakistan',
 }
 
@@ -38,15 +38,17 @@ function dueDate(days = 7) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`
 }
 
-function money(amount, currency) {
-  if (currency === 'PKR') {
-    return `PKR ${Math.round(Number(amount || 0) * USD_TO_PKR).toLocaleString()}`
-  }
-  return `$${Number(amount || 0).toLocaleString()}`
+const CURRENCY_SYMBOLS = { USD: '$', PKR: 'PKR ', GBP: '£', EUR: '€', AUD: 'A$', CAD: 'C$' }
+
+function money(amount, currency, rates) {
+  if (currency === 'USD' || !currency) return `$${Number(amount || 0).toLocaleString()}`
+  const converted = convert(amount, currency, rates)
+  const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `
+  return `${symbol}${Math.round(converted).toLocaleString()}`
 }
 
 // ── Main generator ───────────────────────────────────────────────────────────
-export function generateInvoice(order, profile, currency = 'USD') {
+export function generateInvoice(order, profile, currency = 'USD', rates = null) {
   const { jsPDF } = window.jspdf
   if (!jsPDF) { alert('PDF library not loaded yet. Please try again in a moment.'); return }
 
@@ -98,19 +100,21 @@ export function generateInvoice(order, profile, currency = 'USD') {
 
   y = 46
 
-  // ── Meta row  (Invoice Date / Due Date / Status) ──────────────────────────
+  // ── Meta row  (Invoice Date / Due Date / Status / Payment) ────────────────
+  const paymentStatus = order.payment_status === 'paid' ? 'PAID' : 'UNPAID'
   const metaItems = [
     { label: 'Invoice Date', value: today() },
     { label: 'Due Date',     value: dueDate(7) },
-    { label: 'Status',       value: String(order.status || 'pending').replace('_', ' ').toUpperCase() },
+    { label: 'Project Status', value: String(order.status || 'pending').replace('_', ' ').toUpperCase() },
+    { label: 'Payment Status', value: paymentStatus },
   ]
-  const metaW = col / 3
+  const metaW = col / 4
   metaItems.forEach((m, i) => {
     const x = margin + i * metaW
     box(x, y, metaW - 3, 16, LIGHT, 2)
     setFont('normal', 7.5, GREY)
     text(m.label, x + 4, y + 6)
-    setFont('bold', 9, i === 2 ? GREEN : DARK)
+    setFont('bold', 9, i === 3 ? (paymentStatus === 'PAID' ? GREEN : [220, 38, 38]) : (i === 2 ? GREEN : DARK))
     text(m.value, x + 4, y + 13)
   })
   y += 24
@@ -192,9 +196,7 @@ export function generateInvoice(order, profile, currency = 'USD') {
   y += 12
 
   // Breakdown rows from order
-  const rawBudget    = Number(order.budget || 0)
-  const inPKR        = currency === 'PKR'
-  const rate         = inPKR ? USD_TO_PKR : 1
+  const rawBudget = Number(order.budget || 0)
 
   const items = order.breakdown
     ? Object.entries(order.breakdown).map(([k, v]) => ({
@@ -209,9 +211,9 @@ export function generateInvoice(order, profile, currency = 'USD') {
     setFont('normal', 8, DARK)
     text(item.label, cols.desc, y + 3)
     text(String(item.qty), cols.qty, y + 3)
-    text(money(item.unitPrice, currency), cols.rate, y + 3)
+    text(money(item.unitPrice, currency, rates), cols.rate, y + 3)
     setFont('bold', 8, DARK)
-    text(money(item.unitPrice * item.qty, currency), cols.amt, y + 3, { align: 'right' })
+    text(money(item.unitPrice * item.qty, currency, rates), cols.amt, y + 3, { align: 'right' })
     y += 8
   })
   y += 4
@@ -226,9 +228,9 @@ export function generateInvoice(order, profile, currency = 'USD') {
   const total     = subtotal + tax - discount
 
   const totRows = [
-    { label: 'Subtotal',         value: money(subtotal,  currency), bold: false },
-    { label: 'Tax / VAT (0%)',   value: money(tax,       currency), bold: false },
-    { label: 'Discount',         value: money(discount,  currency), bold: false },
+    { label: 'Subtotal',         value: money(subtotal,  currency, rates), bold: false },
+    { label: 'Tax / VAT (0%)',   value: money(tax,       currency, rates), bold: false },
+    { label: 'Discount',         value: money(discount,  currency, rates), bold: false },
   ]
 
   totRows.forEach(({ label, value }) => {
@@ -243,7 +245,7 @@ export function generateInvoice(order, profile, currency = 'USD') {
   box(W - margin - 74, y - 5, 74, 11, PURPLE, 2)
   setFont('bold', 9, WHITE)
   text('Total Amount Due', W - margin - 70, y + 3)
-  text(money(total, currency), W - margin - 2, y + 3, { align: 'right' })
+  text(money(total, currency, rates), W - margin - 2, y + 3, { align: 'right' })
   y += 18
 
   // ── Payment details ───────────────────────────────────────────────────────
