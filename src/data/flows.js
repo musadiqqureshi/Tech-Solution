@@ -115,7 +115,7 @@ export const FLOWS = {
 export const CONTACT_INFO = {
   email: 'muzzammilkhan7890@gmail.com',
   phone: '+92 308 699 4758',
-  website: 'https://tech-solution-pakistan.vercel.app',
+  website: 'https://tech-solutions.site',
 }
 
 export const CONTACT_SUBFLOWS = {

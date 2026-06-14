@@ -50,6 +50,14 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    })
+    if (error) throw error
+  }
+
   const signOut = async () => { await supabase.auth.signOut(); setProfile(null) }
 
   const value = {
@@ -60,7 +68,7 @@ export function AuthProvider({ children }) {
     role: profile?.role || 'client',
     isAdmin: profile?.role === 'admin',
     loading,
-    signUp, signIn, signOut,
+    signUp, signIn, signInWithGoogle, signOut,
     refreshProfile: () => loadProfile(session?.user?.id),
   }
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>

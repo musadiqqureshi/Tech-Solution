@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Sparkles, ChevronDown, Code2, Globe, Smartphone, PenTool } from 'lucide-react'
 import { stats } from '../data/content'
+import { openPortal } from '../lib/portalBus'
 
 const phrases = [
   'Software Development',
@@ -112,7 +113,7 @@ export default function Hero() {
           transition={{ duration: 0.7, delay: 0.7 }}
           className="flex flex-wrap items-center justify-center gap-3 mt-9"
         >
-          <button onClick={() => go('#contact')} className="btn-primary">
+          <button onClick={openPortal} className="btn-primary">
             Start a Project <ArrowRight size={18} />
           </button>
           <button onClick={() => go('#services')} className="btn-secondary">
