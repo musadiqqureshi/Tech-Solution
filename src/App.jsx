@@ -1,5 +1,4 @@
 import Navbar from './components/Navbar'
-import AIAssistant from './components/AIAssistant'
 import Hero from './components/Hero'
 import Partners from './components/Partners'
 import Services from './components/Services'
@@ -10,6 +9,7 @@ import Testimonials from './components/Testimonials'
 import Team from './components/Team'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
+import PortalLauncher from './portal/PortalLauncher'
 
 export default function App() {
   return (
@@ -27,7 +27,7 @@ export default function App() {
         <Contact />
       </main>
       <Footer />
-      <AIAssistant />
+      <PortalLauncher />
     </div>
   )
 }
