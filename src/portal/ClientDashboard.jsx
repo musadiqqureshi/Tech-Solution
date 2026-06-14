@@ -8,6 +8,7 @@ import { useCurrency, CurrencyPicker, CurrencyToggle } from './CurrencyContext'
 import { fmtMoney } from '../lib/finance'
 import { generateInvoice } from '../lib/invoice'
 import { supabase } from '../lib/supabase'
+import { FinanceAreaChart, monthlySeries } from './FinanceChart'
 
 export default function ClientDashboard({ refreshKey, onChange }) {
   const { user } = useAuth()
@@ -50,6 +51,17 @@ export default function ClientDashboard({ refreshKey, onChange }) {
         </div>
         <div className="shrink-0 pt-1"><CurrencyToggle /></div>
       </div>
+
+      {orders.length > 0 && (
+        <div className="glass-card p-5">
+          <h3 className="font-bold text-slate-900 mb-1">Your spend</h3>
+          <p className="text-xs text-slate-400 mb-3">Project budget over the last 6 months</p>
+          <FinanceAreaChart
+            data={monthlySeries(orders, [{ key: 'spend', field: 'budget' }], { currency, rates, months: 6 })}
+            series={[{ key: 'spend', name: 'Spend', color: '#7c3aed' }]}
+          />
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1">

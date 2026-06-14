@@ -41,6 +41,19 @@ export async function deleteExpert(id) {
   if (error) throw error
 }
 
+// Find a user account by email and promote it to the 'expert' role so they
+// land on /app/expert. Returns the auth user id to link to an expert record.
+// Requires the admin profiles-update policy (supabase/admin_policies.sql).
+export async function linkExpertLogin(email) {
+  const { data, error } = await supabase
+    .from('profiles').select('id').eq('email', email.toLowerCase()).maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('No account with that email — ask them to sign up first.')
+  const { error: uerr } = await supabase.from('profiles').update({ role: 'expert' }).eq('id', data.id)
+  if (uerr) throw new Error('Could not set expert role (run supabase/admin_policies.sql).')
+  return data.id
+}
+
 // ---------- Tasks (expert-facing) ----------
 // Experts only ever see expert-safe columns; RLS hides task_finance entirely.
 export async function listMyTasks() {

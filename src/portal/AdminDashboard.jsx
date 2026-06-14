@@ -9,6 +9,12 @@ import { generateInvoice } from '../lib/invoice'
 import { StatCard, StatusBadge, Priority, Field } from './ui'
 import { useCurrency, CurrencyPicker, CurrencyToggle } from './CurrencyContext'
 import { useAuth } from './AuthContext'
+import { FinanceAreaChart, useMonthly } from './FinanceChart'
+import ExpertsPanel from './admin/ExpertsPanel'
+import TasksPanel from './admin/TasksPanel'
+import InvoicesPanel from './admin/InvoicesPanel'
+
+const ADMIN_TABS = ['orders', 'meetings', 'clients', 'experts', 'tasks', 'invoices']
 
 const REVENUE_STATES = ['approved', 'in_progress', 'delivered', 'completed']
 const INVOICEABLE_STATES = ['approved', 'in_progress', 'delivered', 'completed']
@@ -70,10 +76,12 @@ export default function AdminDashboard({ refreshKey }) {
         <div className="ml-4 shrink-0"><CurrencyToggle /></div>
       </div>
 
-      <div className="flex gap-2">
-        {['orders', 'meetings', 'clients'].map((t) => (
+      <RevenueChart orders={orders} currency={currency} rates={rates} />
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {ADMIN_TABS.map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize ${tab === t ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border border-purple-100'}`}>
+            className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize whitespace-nowrap ${tab === t ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border border-purple-100'}`}>
             {t}
           </button>
         ))}
@@ -87,6 +95,27 @@ export default function AdminDashboard({ refreshKey }) {
           currency={currency} rates={rates} onChange={reload}
         />
       )}
+      {tab === 'experts' && <ExpertsPanel />}
+      {tab === 'tasks' && <TasksPanel />}
+      {tab === 'invoices' && <InvoicesPanel />}
+    </div>
+  )
+}
+
+function RevenueChart({ orders, currency, rates }) {
+  const billable = useMemo(() => orders.filter((o) => REVENUE_STATES.includes(o.status)), [orders])
+  const data = useMonthly(billable, [
+    { key: 'revenue', field: 'budget' },
+    { key: 'profit', field: 'est_profit' },
+  ], { currency, rates, months: 6 })
+  return (
+    <div className="glass-card p-5">
+      <h3 className="font-bold text-slate-900 mb-1">Revenue & profit</h3>
+      <p className="text-xs text-slate-400 mb-3">Last 6 months · approved + active orders</p>
+      <FinanceAreaChart data={data} series={[
+        { key: 'revenue', name: 'Revenue', color: '#7c3aed' },
+        { key: 'profit', name: 'Profit', color: '#0d9488' },
+      ]} />
     </div>
   )
 }
