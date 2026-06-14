@@ -11,10 +11,10 @@ import Contact from './components/Contact'
 import Footer from './components/Footer'
 import { lazy, Suspense } from 'react'
 
-// Defer the heavy, below-the-fold widgets (Supabase, framer-motion portal,
-// chatbot) so they don't block first paint — big desktop speed-up.
+// Defer the chatbot + experts section (the latter pulls in Supabase) so they
+// don't block first paint — keeps the homepage fast on desktop.
 const GuidedAssistant = lazy(() => import('./components/GuidedAssistant'))
-const PortalLauncher = lazy(() => import('./portal/PortalLauncher'))
+const Experts = lazy(() => import('./components/Experts'))
 
 export default function App() {
   return (
@@ -29,12 +29,12 @@ export default function App() {
         <Process />
         <Testimonials />
         <Team />
+        <Suspense fallback={null}><Experts /></Suspense>
         <Contact />
       </main>
       <Footer />
       <Suspense fallback={null}>
         <GuidedAssistant />
-        <PortalLauncher />
       </Suspense>
     </div>
   )

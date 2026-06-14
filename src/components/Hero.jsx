@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Sparkles, ChevronDown, Code2, Globe, Smartphone, PenTool } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { stats } from '../data/content'
-import { openPortal } from '../lib/portalBus'
 
 const phrases = [
   'Software Development',
@@ -28,6 +28,7 @@ export default function Hero() {
   }, [])
 
   const go = (href) => document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })
+  const navigate = useNavigate()
 
   return (
     <section id="hero" className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-aura-mesh pt-28 pb-20">
@@ -113,7 +114,7 @@ export default function Hero() {
           transition={{ duration: 0.7, delay: 0.7 }}
           className="flex flex-wrap items-center justify-center gap-3 mt-9"
         >
-          <button onClick={openPortal} className="btn-primary">
+          <button onClick={() => navigate('/login')} className="btn-primary">
             Start a Project <ArrowRight size={18} />
           </button>
           <button onClick={() => go('#services')} className="btn-secondary">
