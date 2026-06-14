@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import { estimateFinance } from './finance'
 
 // ---------- Orders ----------
-export async function createOrder({ userId, service, description, budget, deadline, priority }) {
+export async function createOrder({ userId, service, description, budget, deadline, priority, file_link, file_link_type }) {
   const finance = estimateFinance({ service, budget })
   const { data, error } = await supabase.from('orders').insert({
     user_id: userId,
@@ -14,6 +14,8 @@ export async function createOrder({ userId, service, description, budget, deadli
     est_cost: finance.estimated_cost,
     est_profit: finance.estimated_profit,
     breakdown: finance.breakdown,
+    file_link: file_link || null,
+    file_link_type: file_link && ['gdrive', 'github'].includes(file_link_type) ? file_link_type : null,
   }).select().single()
   if (error) throw error
   return data

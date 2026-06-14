@@ -72,14 +72,17 @@ async function markRead(roomId, readerRole) {
 }
 
 async function fetchRooms() {
-  // Admin: fetch one row per distinct room (= client), with latest message & unread count
+  // Fetch only the latest 500 messages (covers most active portals) to build the room list.
+  // For high-volume deployments replace this with a Supabase RPC that does
+  //   SELECT DISTINCT ON (room_id) * FROM chat_messages ORDER BY room_id, created_at DESC
   const { data, error } = await supabase
     .from('chat_messages')
     .select('room_id, content, sender_role, created_at, read_at')
     .order('created_at', { ascending: false })
+    .limit(500)
   if (error) throw error
 
-  // Group by room_id
+  // Group by room_id keeping the latest message and counting unread client messages
   const map = {}
   for (const row of data) {
     if (!map[row.room_id]) {

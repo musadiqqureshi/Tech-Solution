@@ -28,7 +28,7 @@ create table if not exists public.profiles (
   email      text        not null default '',
   company    text,
   phone      text,
-  role       text        not null default 'client' check (role in ('client','admin')),
+  role       text        not null default 'client' check (role in ('client','admin','expert')),
   created_at timestamptz not null default now()
 );
 
@@ -182,6 +182,15 @@ drop policy if exists "profiles self update" on public.profiles;
 create policy "profiles self update" on public.profiles
   for update using (id = auth.uid());
 
+-- Experts can read all profiles (needed for task/order lookups)
+drop policy if exists "profiles expert read" on public.profiles;
+create policy "profiles expert read" on public.profiles
+  for select using (
+    id = auth.uid()
+    or public.is_admin()
+    or exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'expert')
+  );
+
 -- ── ORDERS ──────────────────────────────────────────────────
 drop policy if exists "orders read"   on public.orders;
 create policy "orders read" on public.orders
@@ -274,9 +283,11 @@ end $$;
 -- ============================================================
 -- Grant yourself admin after first sign-up:
 --   update public.profiles set role = 'admin' where email = 'you@example.com';
+-- Grant expert role:
+--   update public.profiles set role = 'expert' where email = 'expert@example.com';
 --
 -- Tables summary:
---   profiles        — one row per auth user (name, email, company, phone, role)
+--   profiles        — one row per auth user (name, email, company, phone, role: client|admin|expert)
 --   orders          — client project requests (service, budget, status, file links, delivery,
 --                      payment_status: unpaid|paid, paid_at, paid_marked_by: client|admin)
 --   meetings        — meeting requests (date, time, duration, timezone, status)
