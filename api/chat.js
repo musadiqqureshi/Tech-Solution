@@ -7,9 +7,9 @@ async function getUser(req) {
   const header = req.headers.authorization || ''
   const token = header.startsWith('Bearer ') ? header.slice(7) : null
   if (!token) return null
-  const url = process.env.SUPABASE_URL
-  const anon = process.env.SUPABASE_ANON_KEY
-  if (!url || !anon) return null
+  // Public Supabase values (anon key is publishable + RLS-protected).
+  const url = process.env.SUPABASE_URL || 'https://gfgvjjwvrobgawsbzotj.supabase.co'
+  const anon = process.env.SUPABASE_ANON_KEY || 'sb_publishable_qiWzd9cISg4sIEA0-nmOTQ_XlYwM53v'
   const supabase = createClient(url, anon)
   const { data, error } = await supabase.auth.getUser(token)
   if (error || !data?.user) return null
