@@ -32,7 +32,14 @@ export function AuthProvider({ children }) {
   const signUp = async ({ name, email, password, company, phone }) => {
     const { data, error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { name, company, phone } },
+      options: {
+        data: { name, company, phone },
+        // Send the confirmation link back to wherever the app runs
+        // (localhost in dev, the Vercel domain in prod) instead of the
+        // Supabase default Site URL. Still must be allow-listed under
+        // Auth → URL Configuration → Redirect URLs.
+        emailRedirectTo: window.location.origin,
+      },
     })
     if (error) throw error
     return data
