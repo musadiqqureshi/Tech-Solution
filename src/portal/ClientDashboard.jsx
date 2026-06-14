@@ -97,7 +97,7 @@ function OrdersList({ orders, currency }) {
 }
 
 function NewOrder({ userId, onCreated, currency }) {
-  const [form, setForm] = useState({ service: SERVICE_OPTIONS[0], description: '', budget: '', deadline: '', priority: 'medium' })
+  const [form, setForm] = useState({ service: SERVICE_OPTIONS[0], description: '', budget: '', deadline: '', priority: 'medium', file_link: '', file_link_type: 'gdrive' })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const on = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
@@ -137,6 +137,36 @@ function NewOrder({ userId, onCreated, currency }) {
       </div>
 
       {err && <p className="text-sm text-rose-600">{err}</p>}
+
+      <div className="border-t border-purple-100 pt-4">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Project Files (optional)</p>
+        <div className="grid sm:grid-cols-3 gap-3 items-end">
+          <Field label="File type">
+            <select name="file_link_type" value={form.file_link_type} onChange={on} className="contact-input">
+              <option value="gdrive">Google Drive</option>
+              <option value="github">GitHub Repository</option>
+            </select>
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label={form.file_link_type === 'gdrive' ? 'Google Drive link' : 'GitHub repo URL'}>
+              <input
+                name="file_link"
+                type="url"
+                value={form.file_link}
+                onChange={on}
+                className="contact-input"
+                placeholder={form.file_link_type === 'gdrive' ? 'https://drive.google.com/...' : 'https://github.com/...'}
+              />
+            </Field>
+          </div>
+        </div>
+        <p className="text-xs text-slate-400 mt-1.5">
+          {form.file_link_type === 'gdrive'
+            ? 'Share your Google Drive folder/file with view access and paste the link above.'
+            : 'Paste your public or shared GitHub repository URL above.'}
+        </p>
+      </div>
+
       <button disabled={busy} className="btn-primary w-full justify-center">
         {busy ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />} Create order
       </button>

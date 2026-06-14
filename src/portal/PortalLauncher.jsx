@@ -1,12 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Bot } from 'lucide-react'
 import { AuthProvider } from './AuthContext'
 import Portal from './Portal'
 
 // Self-contained: floating button + portal modal + auth provider.
+// Listens for a custom 'open-portal' event so other components (e.g. Navbar) can open it.
 export default function PortalLauncher() {
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setOpen(true)
+    window.addEventListener('open-portal', handler)
+    return () => window.removeEventListener('open-portal', handler)
+  }, [])
+
   return (
     <AuthProvider>
       <motion.button

@@ -63,7 +63,7 @@ export default function Navbar() {
                 {l.label}
               </button>
             ))}
-            <button onClick={() => go('#contact')} className="btn-primary ml-2 !px-5 !py-2.5 text-sm">
+            <button onClick={() => window.dispatchEvent(new Event('open-portal'))} className="btn-primary ml-2 !px-5 !py-2.5 text-sm">
               Get a Quote
             </button>
           </div>
@@ -91,7 +91,7 @@ export default function Navbar() {
                 {l.label}
               </button>
             ))}
-            <button onClick={() => go('#contact')} className="btn-primary mt-2 justify-center">
+            <button onClick={() => { setOpen(false); window.dispatchEvent(new Event('open-portal')) }} className="btn-primary mt-2 justify-center">
               Get a Quote
             </button>
           </div>
