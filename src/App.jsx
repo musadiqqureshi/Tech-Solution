@@ -1,4 +1,5 @@
 import Navbar from './components/Navbar'
+import AIAssistant from './components/AIAssistant'
 import Hero from './components/Hero'
 import Partners from './components/Partners'
 import Services from './components/Services'
@@ -26,6 +27,7 @@ export default function App() {
         <Contact />
       </main>
       <Footer />
+      <AIAssistant />
     </div>
   )
 }
