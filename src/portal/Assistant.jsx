@@ -11,6 +11,7 @@ export default function Assistant({ onDataChanged }) {
   const [busy, setBusy] = useState(false)
   const [suggestion, setSuggestion] = useState(null) // { action, payload }
   const [done, setDone] = useState('')
+  const [engine, setEngine] = useState(null) // 'gemini' | 'rules'
   const scroller = useRef(null)
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function Assistant({ onDataChanged }) {
     try {
       await saveMessage(user.id, 'user', text)
       const res = await askAssistant(text, history)
+      setEngine(res.engine)
       setMessages((m) => [...m, { role: 'assistant', content: res.message }])
       await saveMessage(user.id, 'assistant', res.message)
       // Surface a quick action when the assistant extracted enough.
@@ -113,6 +115,11 @@ export default function Assistant({ onDataChanged }) {
         </div>
       )}
       {done && <div className="text-sm text-emerald-700 mt-2">{done}</div>}
+      {engine === 'rules' && (
+        <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+          Offline mode — running the basic keyword assistant. Set a valid <b>GEMINI_API_KEY</b> in Vercel to enable full AI replies.
+        </div>
+      )}
 
       <form onSubmit={send} className="mt-3 flex items-center gap-2">
         <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask the assistant…"
