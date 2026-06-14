@@ -93,7 +93,7 @@ export function generateInvoice(order, profile, currency = 'USD', rates = null) 
   text('Tech Solutions Pakistan', margin, 23)
 
   // Invoice number badge
-  const invNo = `INV-${pad(order.id)}`
+  const invNo = order.order_serial ? `INV-${order.order_serial}` : `INV-${pad(order.id)}`
   box(W - margin - 38, 8, 38, 10, [109, 40, 217], 2)
   setFont('bold', 9, WHITE)
   text(invNo, W - margin - 19, 14.5, { align: 'center' })
@@ -155,7 +155,7 @@ export function generateInvoice(order, profile, currency = 'USD', rates = null) 
 
   const details = [
     ['Project Name',   order.service || '—'],
-    ['Project ID',     `#${order.id}`],
+    ['Project ID / Serial', order.order_serial || `#${order.id}`],
     ['Status',         String(order.status || 'pending').replace('_',' ')],
     ['Priority',       order.priority || 'medium'],
     ['Deadline',       order.deadline || '—'],

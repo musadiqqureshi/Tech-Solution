@@ -2,9 +2,9 @@
 
 export function StatCard({ label, value, sub, accent = '#7c3aed' }) {
   return (
-    <div className="glass-card p-5">
+    <div className="glass-card p-3 sm:p-5">
       <div className="text-xs uppercase tracking-widest text-slate-400 font-semibold">{label}</div>
-      <div className="text-2xl font-black mt-1" style={{ color: accent }}>{value}</div>
+      <div className="text-lg sm:text-2xl font-black mt-1 break-all leading-tight" style={{ color: accent }}>{value}</div>
       {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
     </div>
   )

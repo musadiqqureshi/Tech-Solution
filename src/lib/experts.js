@@ -81,7 +81,7 @@ export async function listAllTasks() {
 
 // Admin allots a task: expert_budget is shown to the expert; client_budget &
 // profit are stored in the admin-only task_finance table.
-export async function createTask({ expertId, title, description, service, clientAlias, expertBudget, clientBudget, clientId, dueDate, orderId }) {
+export async function createTask({ expertId, title, description, service, clientAlias, expertBudget, clientBudget, clientId, dueDate, orderId, order_serial }) {
   const eb = Number(expertBudget) || 0
   const cb = Number(clientBudget) || 0
   const { data: task, error } = await supabase.from('tasks').insert({
@@ -92,6 +92,7 @@ export async function createTask({ expertId, title, description, service, client
     client_alias: clientAlias || 'Client',
     expert_budget: eb,
     due_date: dueDate || null,
+    order_serial: order_serial || null,
     order_id: orderId || null,
   }).select().single()
   if (error) throw error

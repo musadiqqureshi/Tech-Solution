@@ -297,3 +297,42 @@ end $$;
 --   clients         — admin-managed client directory (name, email, phone, company, notes),
 --                      for adding/invoicing clients who don't have a portal account
 -- ============================================================
+
+-- ============================================================
+-- SCHEMA PATCH v3 — serial numbers + monthly export support
+-- Run in Supabase SQL Editor (idempotent)
+-- ============================================================
+
+-- 1. Add order_serial column to orders (TSP-YYYYMM-XXXX)
+alter table public.orders
+  add column if not exists order_serial text;
+
+-- 2. Function to generate serial: TSP-YYYYMM-<4-digit padded id>
+create or replace function public.generate_order_serial(order_id bigint, created timestamptz)
+returns text language sql immutable as $$
+  select 'TSP-' || to_char(created, 'YYYYMM') || '-' || lpad(order_id::text, 4, '0')
+$$;
+
+-- 3. Trigger: auto-set order_serial on insert
+create or replace function public.set_order_serial()
+returns trigger language plpgsql as $$
+begin
+  new.order_serial := public.generate_order_serial(new.id, new.created_at);
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_set_order_serial on public.orders;
+create trigger trg_set_order_serial
+  before insert on public.orders
+  for each row execute function public.set_order_serial();
+
+-- 4. Backfill existing orders that have no serial yet
+update public.orders
+set order_serial = public.generate_order_serial(id, created_at)
+where order_serial is null;
+
+-- 5. Add order_serial to tasks table for task↔order linkage
+alter table public.tasks
+  add column if not exists order_serial text;
+-- ============================================================
