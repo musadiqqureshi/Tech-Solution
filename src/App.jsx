@@ -9,6 +9,7 @@ import Testimonials from './components/Testimonials'
 import Team from './components/Team'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
+import GuidedAssistant from './components/GuidedAssistant'
 import PortalLauncher from './portal/PortalLauncher'
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
         <Contact />
       </main>
       <Footer />
+      <GuidedAssistant />
       <PortalLauncher />
     </div>
   )
