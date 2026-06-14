@@ -1,6 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { SYSTEM_PROMPT, ruleBasedReply } from './_lib/assistant.js'
 
+// ⚠️ TEMPORARY / INSECURE — rotate this key and move it to a Vercel env
+// var (GEMINI_API_KEY). Hardcoded at the owner's explicit request so the
+// deployed chat works without env setup. Server-side only: NOT shipped to
+// the browser bundle. This file is committed, so this key is PUBLIC.
+const GEMINI_KEY = process.env.GEMINI_API_KEY || 'AQ.Ab8RN6I1kIT1oTN8ABgONGi7r-vHeLwlAJbK6d0vtvENO_j7AQ'
+
 // Verify the caller's Supabase session so the assistant can't be abused
 // by anonymous traffic. Uses the public anon key — no service role here.
 async function getUser(req) {
@@ -22,7 +28,7 @@ async function getUser(req) {
 
 async function geminiReply(history, message, user) {
   const { GoogleGenerativeAI } = await import('@google/generative-ai')
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  const genAI = new GoogleGenerativeAI(GEMINI_KEY)
   const model = genAI.getGenerativeModel({
     model: 'gemini-1.5-flash',
     systemInstruction: `${SYSTEM_PROMPT}\n\nThe authenticated client is ${user.name} <${user.email}>. Today is ${new Date().toISOString().slice(0, 10)}.`,
@@ -61,7 +67,7 @@ export default async function handler(req, res) {
 
   try {
     let result
-    if (process.env.GEMINI_API_KEY) {
+    if (GEMINI_KEY) {
       try {
         result = await geminiReply(history, message, user)
       } catch (e) {
@@ -78,7 +84,7 @@ export default async function handler(req, res) {
       action: result.action || 'NO_ACTION',
       payload: result.payload || {},
       confirmed: !!result.confirmed,
-      engine: process.env.GEMINI_API_KEY ? 'gemini' : 'rules',
+      engine: GEMINI_KEY ? 'gemini' : 'rules',
     })
   } catch (err) {
     console.error('chat error', err)
