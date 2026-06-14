@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, LogOut, LayoutDashboard, MessageSquare, ShieldCheck, AlertTriangle } from 'lucide-react'
+import { X, LogOut, LayoutDashboard, MessageSquare, ShieldCheck, AlertTriangle, Bot } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import Auth from './Auth'
 import Assistant from './Assistant'
 import ClientDashboard from './ClientDashboard'
 import AdminDashboard from './AdminDashboard'
+import { ClientChat, AdminChat } from './LiveChat'
 import { CurrencyProvider } from './CurrencyContext'
 
 export default function Portal({ open, onClose }) {
@@ -36,11 +37,21 @@ export default function Portal({ open, onClose }) {
                   <div className="font-black text-slate-900 leading-tight text-sm">Client Portal</div>
                   <div className="text-[11px] text-slate-400 leading-tight">Tech Solution Pakistan</div>
                 </div>
-                {isAdmin && <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full"><ShieldCheck size={11} /> Admin</span>}
+                {isAdmin && (
+                  <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                    <ShieldCheck size={11} /> Admin
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
-                {user && <button onClick={signOut} className="text-slate-400 hover:text-rose-600 p-2" title="Sign out"><LogOut size={18} /></button>}
-                <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-2"><X size={20} /></button>
+                {user && (
+                  <button onClick={signOut} className="text-slate-400 hover:text-rose-600 p-2" title="Sign out">
+                    <LogOut size={18} />
+                  </button>
+                )}
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-2">
+                  <X size={20} />
+                </button>
               </div>
             </div>
 
@@ -55,15 +66,35 @@ export default function Portal({ open, onClose }) {
               ) : (
                 <>
                   {/* Tabs */}
-                  <div className="flex gap-1 px-5 pt-3 bg-white border-b border-purple-100">
+                  <div className="flex gap-1 px-5 pt-3 bg-white border-b border-purple-100 overflow-x-auto">
                     <TabButton active={view === 'dashboard'} onClick={() => setView('dashboard')} icon={LayoutDashboard} label="Dashboard" />
-                    <TabButton active={view === 'assistant'} onClick={() => setView('assistant')} icon={MessageSquare} label="AI Assistant" />
+                    <TabButton active={view === 'chat'} onClick={() => setView('chat')} icon={MessageSquare} label={isAdmin ? 'Client Messages' : 'Live Chat'} />
+                    {!isAdmin && (
+                      <TabButton active={view === 'assistant'} onClick={() => setView('assistant')} icon={Bot} label="AI Assistant" />
+                    )}
                   </div>
-                  <div className="flex-1 overflow-y-auto p-5">
+
+                  <div className="flex-1 overflow-hidden">
                     <CurrencyProvider>
-                      {view === 'dashboard'
-                        ? (isAdmin ? <AdminDashboard refreshKey={refreshKey} /> : <ClientDashboard refreshKey={refreshKey} onChange={bump} />)
-                        : <div className="h-[calc(88vh-200px)] sm:h-full min-h-[400px]"><Assistant onDataChanged={bump} /></div>}
+                      {view === 'dashboard' && (
+                        <div className="h-full overflow-y-auto p-5">
+                          {isAdmin
+                            ? <AdminDashboard refreshKey={refreshKey} />
+                            : <ClientDashboard refreshKey={refreshKey} onChange={bump} />}
+                        </div>
+                      )}
+                      {view === 'chat' && (
+                        <div className="h-full p-3 sm:p-4">
+                          {isAdmin ? <AdminChat /> : <ClientChat />}
+                        </div>
+                      )}
+                      {view === 'assistant' && !isAdmin && (
+                        <div className="h-full overflow-y-auto p-5">
+                          <div className="h-full min-h-[400px]">
+                            <Assistant onDataChanged={bump} />
+                          </div>
+                        </div>
+                      )}
                     </CurrencyProvider>
                   </div>
                 </>
@@ -78,9 +109,12 @@ export default function Portal({ open, onClose }) {
 
 function TabButton({ active, onClick, icon: Icon, label }) {
   return (
-    <button onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${
-        active ? 'border-purple-600 text-purple-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap ${
+        active ? 'border-purple-600 text-purple-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+      }`}
+    >
       <Icon size={16} /> {label}
     </button>
   )

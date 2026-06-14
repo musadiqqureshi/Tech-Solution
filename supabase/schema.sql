@@ -152,3 +152,60 @@ create policy "messages insert" on public.messages
 -- Make yourself an admin (run AFTER you have signed up once):
 --   update public.profiles set role = 'admin' where email = 'you@example.com';
 -- ============================================================
+
+-- ============================================================
+-- LIVE CHAT — client ↔ admin real-time messaging
+-- Run this block in Supabase SQL Editor after the initial schema
+-- ============================================================
+
+-- chat_messages: all client↔admin messages
+create table if not exists public.chat_messages (
+  id           bigint generated always as identity primary key,
+  room_id      uuid not null,          -- one room per client (= client user_id)
+  sender_id    uuid not null references auth.users(id) on delete cascade,
+  sender_role  text not null check (sender_role in ('client','admin')),
+  content      text not null,
+  read_at      timestamptz,            -- null = unread by the other side
+  created_at   timestamptz not null default now()
+);
+
+create index if not exists chat_messages_room_idx on public.chat_messages(room_id, created_at);
+
+-- online_presence: lightweight heartbeat table
+create table if not exists public.online_presence (
+  user_id    uuid primary key references auth.users(id) on delete cascade,
+  role       text not null default 'client',
+  last_seen  timestamptz not null default now()
+);
+
+-- RLS for chat_messages
+alter table public.chat_messages enable row level security;
+
+drop policy if exists "chat read own room" on public.chat_messages;
+create policy "chat read own room" on public.chat_messages
+  for select using (room_id = auth.uid() or public.is_admin());
+
+drop policy if exists "chat insert own room" on public.chat_messages;
+create policy "chat insert own room" on public.chat_messages
+  for insert with check (
+    sender_id = auth.uid() and (room_id = auth.uid() or public.is_admin())
+  );
+
+drop policy if exists "chat update read_at" on public.chat_messages;
+create policy "chat update read_at" on public.chat_messages
+  for update using (room_id = auth.uid() or public.is_admin());
+
+-- RLS for online_presence
+alter table public.online_presence enable row level security;
+
+drop policy if exists "presence read all" on public.online_presence;
+create policy "presence read all" on public.online_presence
+  for select using (true);
+
+drop policy if exists "presence upsert own" on public.online_presence;
+create policy "presence upsert own" on public.online_presence
+  for all using (user_id = auth.uid());
+
+-- Enable realtime on both tables
+alter publication supabase_realtime add table public.chat_messages;
+alter publication supabase_realtime add table public.online_presence;
