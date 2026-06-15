@@ -7,11 +7,18 @@ export const useAuth = () => useContext(AuthCtx)
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [profileError, setProfileError] = useState('')
   const [loading, setLoading] = useState(true)
 
   const loadProfile = useCallback(async (uid) => {
-    if (!uid) { setProfile(null); return }
-    const { data } = await supabase.from('profiles').select('*').eq('id', uid).single()
+    if (!uid) { setProfile(null); setProfileError(''); return }
+    // maybeSingle() won't throw on 0 rows. Previously .single() could throw
+    // on any read hiccup, leaving profile null and silently defaulting the
+    // role to 'client' — which made admins see the client dashboard.
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
+    if (error) setProfileError(error.message)
+    else if (!data) setProfileError('No profile row for your account — run supabase/schema.sql so the signup trigger/row exists.')
+    else setProfileError('')
     setProfile(data || null)
   }, [])
 
@@ -50,14 +57,6 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
-  const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    })
-    if (error) throw error
-  }
-
   const signOut = async () => { await supabase.auth.signOut(); setProfile(null) }
 
   const value = {
@@ -65,10 +64,11 @@ export function AuthProvider({ children }) {
     session,
     user: session?.user || null,
     profile,
+    profileError,
     role: profile?.role || 'client',
     isAdmin: profile?.role === 'admin',
     loading,
-    signUp, signIn, signInWithGoogle, signOut,
+    signUp, signIn, signOut,
     refreshProfile: () => loadProfile(session?.user?.id),
   }
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>

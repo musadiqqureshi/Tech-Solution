@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, Check, X, Truck, Github, HardDrive, ExternalLink, FileText, Banknote, UserPlus, Trash2, DownloadCloud } from 'lucide-react'
+import { Loader2, Check, X, Truck, Github, HardDrive, ExternalLink, FileText, Banknote, UserPlus, Trash2 } from 'lucide-react'
 import {
   listOrders, listMeetings, listClients, updateOrderStatus, markDelivered, setMeetingStatus,
   setPaymentStatus, listManualClients, createManualClient, deleteManualClient,
@@ -9,14 +9,6 @@ import { generateInvoice } from '../lib/invoice'
 import { StatCard, StatusBadge, Priority, Field } from './ui'
 import { useCurrency, CurrencyPicker, CurrencyToggle } from './CurrencyContext'
 import { useAuth } from './AuthContext'
-import { FinanceAreaChart, useMonthly } from './FinanceChart'
-import { generateMonthlyReport } from '../lib/monthlyReport'
-import { listAllTasks } from '../lib/experts'
-import ExpertsPanel from './admin/ExpertsPanel'
-import TasksPanel from './admin/TasksPanel'
-import InvoicesPanel from './admin/InvoicesPanel'
-
-const ADMIN_TABS = ['orders', 'meetings', 'clients', 'experts', 'tasks', 'invoices']
 
 const REVENUE_STATES = ['approved', 'in_progress', 'delivered', 'completed']
 const INVOICEABLE_STATES = ['approved', 'in_progress', 'delivered', 'completed']
@@ -26,17 +18,15 @@ export default function AdminDashboard({ refreshKey }) {
   const [meetings, setMeetings] = useState([])
   const [clients, setClients] = useState([])
   const [manualClients, setManualClients] = useState([])
-  const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
-  const [exportBusy, setExportBusy] = useState(false)
   const [tab, setTab] = useState('orders')
   const { currency, setCurrency, rates } = useCurrency()
 
   const reload = async () => {
     setLoading(true)
     try {
-      const [o, m, c, mc, ts] = await Promise.all([listOrders(), listMeetings(), listClients(), listManualClients().catch(() => []), listAllTasks().catch(() => [])])
-      setOrders(o); setMeetings(m); setClients(c); setManualClients(mc || []); setTasks(ts || [])
+      const [o, m, c, mc] = await Promise.all([listOrders(), listMeetings(), listClients(), listManualClients().catch(() => [])])
+      setOrders(o); setMeetings(m); setClients(c); setManualClients(mc || [])
     } catch (e) { /* ignore */ }
     setLoading(false)
   }
@@ -70,27 +60,20 @@ export default function AdminDashboard({ refreshKey }) {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-3">
-        <div className="flex items-start justify-between gap-2 flex-wrap">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-w-0">
-            <StatCard label="Revenue"    value={fmtMoney(stats.revenue, currency, rates)} sub="approved + active" accent="#7c3aed" />
-            <StatCard label="Est. Profit" value={fmtMoney(stats.profit, currency, rates)} sub="projected margin"  accent="#0d9488" />
-            <StatCard label="Pending"    value={stats.pending}   sub="awaiting approval"  accent="#f59e0b" />
-            <StatCard label="Clients"    value={stats.clients}   sub="registered"         accent="#2563eb" />
-          </div>
-          <div className="flex flex-col items-end gap-2 shrink-0 pt-1">
-            <CurrencyToggle />
-            <ExportButton orders={orders} tasks={tasks} currency={currency} rates={rates} />
-          </div>
+      <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+          <StatCard label="Revenue" value={fmtMoney(stats.revenue, currency, rates)} sub="approved + active" accent="#7c3aed" />
+          <StatCard label="Est. Profit" value={fmtMoney(stats.profit, currency, rates)} sub="projected margin" accent="#0d9488" />
+          <StatCard label="Pending" value={stats.pending} sub="awaiting approval" accent="#f59e0b" />
+          <StatCard label="Clients" value={stats.clients} sub="registered" accent="#2563eb" />
         </div>
+        <div className="ml-4 shrink-0"><CurrencyToggle /></div>
       </div>
 
-      <RevenueChart orders={orders} currency={currency} rates={rates} />
-
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
-        {ADMIN_TABS.map((t) => (
+      <div className="flex gap-2">
+        {['orders', 'meetings', 'clients'].map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold capitalize whitespace-nowrap ${tab === t ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border border-purple-100'}`}>
+            className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize ${tab === t ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border border-purple-100'}`}>
             {t}
           </button>
         ))}
@@ -104,27 +87,6 @@ export default function AdminDashboard({ refreshKey }) {
           currency={currency} rates={rates} onChange={reload}
         />
       )}
-      {tab === 'experts' && <ExpertsPanel />}
-      {tab === 'tasks' && <TasksPanel />}
-      {tab === 'invoices' && <InvoicesPanel />}
-    </div>
-  )
-}
-
-function RevenueChart({ orders, currency, rates }) {
-  const billable = useMemo(() => orders.filter((o) => REVENUE_STATES.includes(o.status)), [orders])
-  const data = useMonthly(billable, [
-    { key: 'revenue', field: 'budget' },
-    { key: 'profit', field: 'est_profit' },
-  ], { currency, rates, months: 6 })
-  return (
-    <div className="glass-card p-5">
-      <h3 className="font-bold text-slate-900 mb-1">Revenue & profit</h3>
-      <p className="text-xs text-slate-400 mb-3">Last 6 months · approved + active orders</p>
-      <FinanceAreaChart data={data} series={[
-        { key: 'revenue', name: 'Revenue', color: '#7c3aed' },
-        { key: 'profit', name: 'Profit', color: '#0d9488' },
-      ]} />
     </div>
   )
 }
@@ -212,12 +174,12 @@ function AdminOrderRow({ o, clientName, clientProfile, onChange, currency, rates
       {['approved', 'in_progress', 'delivered', 'completed'].includes(o.status) && (
         <div className="mt-4 bg-slate-50 rounded-xl p-3">
           <div className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold mb-2 flex items-center gap-1"><Truck size={12} /> Deliver project</div>
-          <div className="flex flex-wrap gap-2 items-start sm:items-center">
+          <div className="flex flex-wrap gap-2 items-center">
             <select value={delivery.delivery_type} onChange={(e) => setDelivery((d) => ({ ...d, delivery_type: e.target.value }))} className="contact-input !w-auto !py-2 text-sm">
               <option value="github">GitHub</option><option value="gdrive">Google Drive</option><option value="other">Other</option>
             </select>
             <input value={delivery.delivery_url} onChange={(e) => setDelivery((d) => ({ ...d, delivery_url: e.target.value }))}
-              placeholder="Paste GitHub / Drive link" className="contact-input flex-1 !py-2 text-sm min-w-0 w-full sm:w-auto" />
+              placeholder="Paste GitHub / Drive link" className="contact-input flex-1 !py-2 text-sm min-w-[200px]" />
             <button disabled={busy || !delivery.delivery_url} onClick={() => act(() => markDelivered(o.id, delivery))} className="btn-primary !px-3 !py-2 text-xs">Save & mark delivered</button>
           </div>
           {o.delivery_url && (
@@ -387,61 +349,6 @@ function AddClientForm({ onAdded }) {
 }
 
 // ── Ad-hoc invoice modal (for any client, not tied to an order) ────────────
-
-
-// ── Monthly Export Button ─────────────────────────────────────────────────
-function ExportButton({ orders, tasks, currency, rates }) {
-  const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth() + 1)
-  const [busy, setBusy] = useState(false)
-  const [open, setOpen] = useState(false)
-
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-  const years  = [now.getFullYear(), now.getFullYear()-1, now.getFullYear()-2]
-
-  const run = () => {
-    setBusy(true)
-    try { generateMonthlyReport({ orders, tasks, currency, rates, year, month }) }
-    catch(e){ console.error(e) }
-    finally { setBusy(false); setOpen(false) }
-  }
-
-  return (
-    <div className="relative">
-      <button onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors whitespace-nowrap">
-        <DownloadCloud size={13} /> Export Report
-      </button>
-      {open && (
-        <div className="absolute right-0 top-9 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 min-w-[200px] space-y-3">
-          <p className="text-xs font-bold text-slate-700">Monthly PDF Report</p>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-[10px] text-slate-400 mb-1">Month</p>
-              <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
-                className="contact-input !py-1.5 text-xs">
-                {months.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
-              </select>
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 mb-1">Year</p>
-              <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-                className="contact-input !py-1.5 text-xs">
-                {years.map((y) => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-          </div>
-          <button onClick={run} disabled={busy}
-            className="btn-primary w-full justify-center !text-xs !py-2">
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <DownloadCloud size={13} />}
-            Download PDF
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
 
 function AdHocInvoiceModal({ client, currency, rates, onClose }) {
   const [form, setForm] = useState({ service: '', description: '', amount: '', deadline: '' })

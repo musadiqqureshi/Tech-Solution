@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
 import { Menu, X, Cpu } from 'lucide-react'
 
 const links = [
@@ -16,7 +15,6 @@ const links = [
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const navigate = useNavigate()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -65,10 +63,7 @@ export default function Navbar() {
                 {l.label}
               </button>
             ))}
-            <button onClick={() => navigate('/login')} className="ml-1 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:text-purple-700 rounded-lg hover:bg-purple-50">
-              Login
-            </button>
-            <button onClick={() => navigate('/login')} className="btn-primary ml-1 !px-5 !py-2.5 text-sm">
+            <button onClick={() => window.dispatchEvent(new Event('open-portal'))} className="btn-primary ml-2 !px-5 !py-2.5 text-sm">
               Get a Quote
             </button>
           </div>
@@ -96,8 +91,8 @@ export default function Navbar() {
                 {l.label}
               </button>
             ))}
-            <button onClick={() => { setOpen(false); navigate('/login') }} className="btn-primary mt-2 justify-center">
-              Login / Get a Quote
+            <button onClick={() => { setOpen(false); window.dispatchEvent(new Event('open-portal')) }} className="btn-primary mt-2 justify-center">
+              Get a Quote
             </button>
           </div>
         </motion.div>

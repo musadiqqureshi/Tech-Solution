@@ -66,7 +66,7 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-slate-500">© {new Date().getFullYear()} Tech Solutions. All rights reserved.</p>
           <p className="text-xs text-slate-400">
-            Led by Musaddiq Ahmed Qureshi — Founder & CEO
+            Led by Muhammad Hassan Ajmal Hashmi (CEO) & Musaddiq Ahmed Qureshi (CFO)
           </p>
           <button
             onClick={() => go('#hero')}

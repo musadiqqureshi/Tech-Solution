@@ -8,7 +8,6 @@ import { useCurrency, CurrencyPicker, CurrencyToggle } from './CurrencyContext'
 import { fmtMoney } from '../lib/finance'
 import { generateInvoice } from '../lib/invoice'
 import { supabase } from '../lib/supabase'
-import { FinanceAreaChart, monthlySeries } from './FinanceChart'
 
 export default function ClientDashboard({ refreshKey, onChange }) {
   const { user } = useAuth()
@@ -51,17 +50,6 @@ export default function ClientDashboard({ refreshKey, onChange }) {
         </div>
         <div className="shrink-0 pt-1"><CurrencyToggle /></div>
       </div>
-
-      {orders.length > 0 && (
-        <div className="glass-card p-5">
-          <h3 className="font-bold text-slate-900 mb-1">Your spend</h3>
-          <p className="text-xs text-slate-400 mb-3">Project budget over the last 6 months</p>
-          <FinanceAreaChart
-            data={monthlySeries(orders, [{ key: 'spend', field: 'budget' }], { currency, rates, months: 6 })}
-            series={[{ key: 'spend', name: 'Spend', color: '#7c3aed' }]}
-          />
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -147,11 +135,6 @@ function OrderCard({ order: o, currency, rates, user, onFollowUp, onChange }) {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            {o.order_serial && (
-              <span className="text-[10px] font-mono font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200 flex items-center gap-1 w-fit">
-                # {o.order_serial}
-              </span>
-            )}
             <h4 className="font-bold text-slate-900 text-sm sm:text-base">{o.service}</h4>
             <StatusBadge status={o.status} />
             <Priority value={o.priority} />

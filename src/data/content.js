@@ -60,8 +60,8 @@ export const process = [
 export const team = [
   {
     name: 'Musaddiq Ahmed Qureshi',
-    role: 'Founder & Chief Executive Officer',
-    bio: 'Senior engineer and Big Data specialist who sets the vision and leads delivery across every engagement — making sure each project ships with quality, performance, and purpose.',
+    role: 'Chief Executive Officer',
+    bio: 'Sets the vision and leads delivery across every engagement — a senior engineer and Big Data specialist driving both the technical excellence and strategic direction of the company.',
     initials: 'MQ',
     accent: 'purple',
     link: 'https://musadiqqureshi.vercel.app',

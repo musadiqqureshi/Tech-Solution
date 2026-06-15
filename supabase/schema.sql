@@ -40,15 +40,19 @@ returns trigger language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, name, email, company, phone)
+  insert into public.profiles (id, name, email, company, phone, role)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', ''),
     coalesce(new.email, ''),
     new.raw_user_meta_data->>'company',
-    new.raw_user_meta_data->>'phone'
+    new.raw_user_meta_data->>'phone',
+    case when lower(coalesce(new.email, '')) = 'muzzammilkhan7890@gmail.com'
+         then 'admin' else 'client' end
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update
+    set role = case when lower(coalesce(new.email, '')) = 'muzzammilkhan7890@gmail.com'
+                    then 'admin' else public.profiles.role end;
   return new;
 end;
 $$;
@@ -57,6 +61,16 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Backfill profiles for any EXISTING auth users (signed up before the
+-- trigger, or after a reset), then guarantee the owner is an admin.
+insert into public.profiles (id, name, email)
+select u.id, coalesce(u.raw_user_meta_data->>'name', ''), coalesce(u.email, '')
+from auth.users u
+on conflict (id) do nothing;
+
+update public.profiles set role = 'admin'
+where lower(email) = 'muzzammilkhan7890@gmail.com';
 
 -- ============================================================
 -- 3. ORDERS  (client project requests)

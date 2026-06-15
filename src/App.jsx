@@ -9,12 +9,8 @@ import Testimonials from './components/Testimonials'
 import Team from './components/Team'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
-import { lazy, Suspense } from 'react'
-
-// Defer the chatbot + experts section (the latter pulls in Supabase) so they
-// don't block first paint — keeps the homepage fast on desktop.
-const GuidedAssistant = lazy(() => import('./components/GuidedAssistant'))
-const Experts = lazy(() => import('./components/Experts'))
+import GuidedAssistant from './components/GuidedAssistant'
+import PortalLauncher from './portal/PortalLauncher'
 
 export default function App() {
   return (
@@ -29,13 +25,11 @@ export default function App() {
         <Process />
         <Testimonials />
         <Team />
-        <Suspense fallback={null}><Experts /></Suspense>
         <Contact />
       </main>
       <Footer />
-      <Suspense fallback={null}>
-        <GuidedAssistant />
-      </Suspense>
+      <GuidedAssistant />
+      <PortalLauncher />
     </div>
   )
 }
