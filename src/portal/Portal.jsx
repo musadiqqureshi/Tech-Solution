@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, LogOut, LayoutDashboard, MessageSquare, ShieldCheck, AlertTriangle, Bot } from 'lucide-react'
+import { X, LogOut, LayoutDashboard, MessageSquare, ShieldCheck, AlertTriangle, Bot, Loader2, RefreshCw } from 'lucide-react'
 import { useAuth } from './AuthContext'
 import Auth from './Auth'
 import Assistant from './Assistant'
@@ -10,10 +10,12 @@ import { ClientChat, AdminChat } from './LiveChat'
 import { CurrencyProvider } from './CurrencyContext'
 
 export default function Portal({ open, onClose }) {
-  const { configured, user, profile, isAdmin, loading, signOut } = useAuth()
+  const { configured, user, profile, isAdmin, loading, signOut, profileError, refreshProfile } = useAuth()
   const [view, setView] = useState('dashboard')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [recheck, setRecheck] = useState(false)
   const bump = () => setRefreshKey((k) => k + 1)
+  const doRecheck = async () => { setRecheck(true); try { await refreshProfile?.() } finally { setRecheck(false) } }
 
   return (
     <AnimatePresence>
@@ -65,6 +67,21 @@ export default function Portal({ open, onClose }) {
                 <div className="flex-1 overflow-y-auto grid place-items-center p-6"><Auth /></div>
               ) : (
                 <>
+                  {/* Role diagnostic — shows what the app reads, with a re-check */}
+                  <div className="px-5 pt-3 bg-white">
+                    <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl px-3 py-2 text-xs bg-slate-100 border border-slate-200 text-slate-600">
+                      <span>
+                        Signed in as <b>{profile?.email || user.email}</b> · role <b className="uppercase">{profile?.role || 'client'}</b>
+                        {profileError && <span className="text-rose-600"> — {profileError}</span>}
+                        {!isAdmin && ' (set this account to admin in the DB, then re-check)'}
+                      </span>
+                      <button onClick={doRecheck} disabled={recheck}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-purple-200 text-purple-700 font-semibold hover:bg-purple-50">
+                        {recheck ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Re-check role
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Tabs */}
                   <div className="flex gap-1 px-5 pt-3 bg-white border-b border-purple-100 overflow-x-auto">
                     <TabButton active={view === 'dashboard'} onClick={() => setView('dashboard')} icon={LayoutDashboard} label="Dashboard" />
