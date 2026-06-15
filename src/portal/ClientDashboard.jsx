@@ -135,6 +135,11 @@ function OrderCard({ order: o, currency, rates, user, onFollowUp, onChange }) {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
+            {o.order_serial && (
+              <span className="text-[10px] font-mono font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200 w-fit">
+                # {o.order_serial}
+              </span>
+            )}
             <h4 className="font-bold text-slate-900 text-sm sm:text-base">{o.service}</h4>
             <StatusBadge status={o.status} />
             <Priority value={o.priority} />

@@ -86,7 +86,7 @@ export function CurrencyToggle() {
         </span>
       </div>
       {currency !== 'USD' && (
-        <span className="text-[10px] text-slate-400 whitespace-nowrap" title={ratesStale ? 'Using last known rate (offline)' : "Today's exchange rate"}>
+        <span className="hidden sm:inline text-[10px] text-slate-400 whitespace-nowrap" title={ratesStale ? 'Using last known rate (offline)' : "Today's exchange rate"}>
           1 USD ≈ {Number(rates?.[currency] || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}{ratesStale ? ' *' : ''}
         </span>
       )}
